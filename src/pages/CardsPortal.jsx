@@ -14,7 +14,6 @@ import styles                                 from './CardsPortal.module.css';
 export default function CardsPortal() {
   const pageRef = useRef(null);
 
-  // ── Filter state ──────────────────────────────────────────────────────────
   const [filters, setFilters] = useState({
     first_name: '', last_name: '', jmbg: '', account_number: '',
   });
@@ -24,7 +23,6 @@ export default function CardsPortal() {
   const debJmbg    = useDebounce(filters.jmbg,           400);
   const debAccount = useDebounce(filters.account_number, 400);
 
-  // ── Data ──────────────────────────────────────────────────────────────────
   const { data, loading, error, refetch } = useFetch(
     () => {
       const params = {};
@@ -37,8 +35,6 @@ export default function CardsPortal() {
     [debFirst, debLast, debJmbg, debAccount]
   );
 
-  // ── Modal state ───────────────────────────────────────────────────────────
-  // { card, clientName } | null
   const [modalTarget,    setModalTarget]    = useState(null);
   const [unblockSuccess, setUnblockSuccess] = useState(null);
 
@@ -53,7 +49,6 @@ export default function CardsPortal() {
     refetch();
   }
 
-  // ── Animation ─────────────────────────────────────────────────────────────
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       gsap.from('.page-anim', { opacity: 0, y: 20, duration: 0.45, stagger: 0.07, ease: 'power2.out' });

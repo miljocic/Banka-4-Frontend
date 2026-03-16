@@ -1,12 +1,6 @@
 import CardStatusBadge from './CardStatusBadge';
 import styles          from './CardsTable.module.css';
 
-/**
- * Tabela klijenata i njihovih kartica.
- *
- * onUnblockClick({ card, clientName }) — parent otvara UnblockCardModal.
- * Dugme "Deblokiraj" se prikazuje SAMO za kartice sa statusom BLOKIRANA.
- */
 export default function CardsTable({ clients, onUnblockClick }) {
   if (clients.length === 0) {
     return (

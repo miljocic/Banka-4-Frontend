@@ -2,15 +2,6 @@ import { useState }    from 'react';
 import { cardsApi }    from '../../api/endpoints/cards';
 import styles          from './UnblockCardModal.module.css';
 
-/**
- * Modal za potvrdu deblokade kartice.
- *
- * Props:
- *   card      — objekat kartice { id, card_number, account_number, status }
- *   clientName — ime klijenta za prikaz u modalu
- *   onClose()  — zatvara modal bez akcije
- *   onSuccess() — poziva se nakon uspešne deblokade (parent refetch-uje)
- */
 export default function UnblockCardModal({ card, clientName, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState(null);
