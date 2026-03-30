@@ -1,4 +1,4 @@
-// cypress/e2e/kt2/scenario-6-client-accounts-real.cy.ts
+// cypress/e2e/cards/scenario-6-client-accounts-real.cy.ts
 describe('Scenario 6: Pregled računa klijenta (real podaci)', () => {
     it('prikazuje aktivne račune i sortira ih po raspoloživom stanju', () => {
         cy.loginAsClient();

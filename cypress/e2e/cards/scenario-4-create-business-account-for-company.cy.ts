@@ -1,4 +1,4 @@
-// cypress/e2e/kt2/scenario-4-create-business-account-for-company.cy.ts
+// cypress/e2e/cards/scenario-4-create-business-account-for-company.cy.ts
 describe('Feature: Kreiranje i upravljanje računima', () => {
     beforeEach(() => {
         cy.loginAsAdmin(); // ili employee kad bude postojalo

@@ -1,4 +1,4 @@
-// cypress/e2e/kt2/scenario-7-account-details-real.cy.ts
+// cypress/e2e/cards/scenario-7-account-details-real.cy.ts
 describe('Scenario 7: Pregled detalja računa', () => {
     it('klik na Detalji prikazuje broj računa, stanje, raspoloživo stanje i tip računa', () => {
         cy.loginAsClient();

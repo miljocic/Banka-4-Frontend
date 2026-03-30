@@ -1,4 +1,4 @@
-// cypress/e2e/kt2/scenario-2-create-foreign-account-existing-client.cy.ts
+// cypress/e2e/cards/scenario-2-create-foreign-account-existing-client.cy.ts
 describe('Feature: Kreiranje i upravljanje računima', () => {
     beforeEach(() => {
         cy.loginAsAdmin(); // ili cy.loginAsEmployee kad budete imali komandu
