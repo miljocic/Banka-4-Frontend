@@ -139,7 +139,7 @@ export function normalizeCard(apiCard) {
   return {
     id: apiCard.id,
     cardNumber: apiCard.card_number ?? apiCard.cardNumber ?? '',
-    holderName: apiCard.holder_name ?? apiCard.holderName ?? apiCard.name ?? '',
+    holderName: apiCard.holder_name ?? apiCard.holderName ?? '—',
     expiresAt: apiCard.expires_at ?? apiCard.expiration_date ?? apiCard.expiresAt ?? '',
     createdAt: apiCard.creation_date ?? apiCard.createdAt ?? '',
     brand: apiCard.card_brand ?? apiCard.brand ?? '',

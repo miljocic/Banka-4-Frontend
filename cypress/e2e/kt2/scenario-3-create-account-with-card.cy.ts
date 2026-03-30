@@ -14,7 +14,6 @@ describe('Feature: Kreiranje i upravljanje računima', () => {
             .parent()
             .find('input[type="text"]')
             .clear()
-            .clear()
             .type(clientEmail);
 
         cy.contains('button', /^pretraži$/i).click();
@@ -38,6 +37,12 @@ describe('Feature: Kreiranje i upravljanje računima', () => {
         cy.contains('label', /početno stanje/i).parent().find('input[type="number"]').clear().type('0');
         cy.contains('label', /dnevni limit/i).parent().find('input[type="number"]').clear().type('5000');
         cy.contains('label', /mesečni limit/i).parent().find('input[type="number"]').clear().type('20000');
+
+        // Napravi karticu (create_card)
+        cy.contains('Napravi karticu')
+            .closest('label')
+            .find('input[type="checkbox"]')
+            .check({ force: true });
 
         // 6) Kreiraj račun
         cy.intercept('POST', '**/accounts*').as('createAccount');
