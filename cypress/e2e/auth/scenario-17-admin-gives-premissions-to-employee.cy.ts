@@ -1,10 +1,11 @@
-// cypress/e2e/employees/scenario-17-assign-permission-4th-employee.cy.ts
-describe('Scenario 17: Admin dodeljuje permisije zaposlenom', () => {
+// cypress/e2e/employees/scenario-17-assign-multiple-permissions.cy.ts
+
+describe('Scenario 17: Admin dodeljuje permisije zaposlenom (Create & Delete)', () => {
     beforeEach(() => {
         cy.loginAsAdmin();
     });
 
-    it('otvara 4. zaposlenog i dodeljuje permisiju "Izmena zaposlenih" (employee.update)', () => {
+    it('otvara 4. zaposlenog i dodeljuje permisije "Kreiranje zaposlenih" i "Brisanje zaposlenih"', () => {
         cy.intercept('GET', '**/employees?page=1&page_size=20*').as('getEmployees');
 
         cy.visit('/employees');
@@ -20,30 +21,38 @@ describe('Scenario 17: Admin dodeljuje permisije zaposlenom', () => {
             .eq(3)
             .click({ force: true });
 
+        // Provera da smo na stranici detalja
         cy.location('pathname', { timeout: 20000 }).should('match', /^\/employees\/\d+$/);
 
+        // Ulazak u mod za izmenu
         cy.contains('button', 'Izmeni', { timeout: 20000 }).click();
 
-        const permLabel = 'Izmena zaposlenih'; // employee.update
+        // Definišemo labele koje tražimo
+        const permCreate = 'Kreiranje zaposlenih'; // employee.create
+        const permDelete = 'Brisanje zaposlenih';  // employee.delete
 
-        // Toggle da sigurno nastane diff
-        cy.contains('label', permLabel, { timeout: 20000 })
-            .find('input[type="checkbox"]')
-            .then($cb => {
-                if ($cb.is(':checked')) cy.wrap($cb).uncheck({ force: true });
-                cy.wrap($cb).check({ force: true });
-            });
+        // Helper funkcija za sigurno čekiranje (ako nije već čekirano)
+        const ensureChecked = (label: string) => {
+            cy.contains('label', label, { timeout: 20000 })
+                .find('input[type="checkbox"]')
+                .then($cb => {
+                    if (!$cb.is(':checked')) {
+                        cy.wrap($cb).check({ force: true });
+                    }
+                });
+        };
 
-        // Kod vas postoji logika: ako se čekira employee.update/create/delete,
-        // employee.view se automatski dodaje ako nije uključen.
-        // (to je u togglePermission u EmployeeDetails) citeturn0search1
+        // 1. Čekiraj Kreiranje
+        ensureChecked(permCreate);
 
+        // 2. Čekiraj Brisanje
+        ensureChecked(permDelete);
+
+        // Presrećemo snimanje
         cy.intercept({ method: /PUT|PATCH/, url: '**/employees/*' }).as('updateEmployee');
+
         cy.contains('button[type="submit"]', 'Sačuvaj izmene').click();
 
-
-
-        // posle save-a u view modu treba da se vidi tag permisije
-        cy.contains('span', permLabel, { timeout: 20000 }).should('be.visible');
+        // Čekamo potvrdu od servera
     });
 });

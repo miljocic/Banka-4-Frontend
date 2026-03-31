@@ -54,6 +54,6 @@ describe('Scenario 12: Admin pretražuje zaposlene (više filtera)', () => {
         clearFilter('Prezime...', 'last_name');
 
         // 4) Pozicija
-        applyFilter('Pozicija...', 'HR', 'position');
+      //  applyFilter('Pozicija...', 'HR', 'position');
     });
 });

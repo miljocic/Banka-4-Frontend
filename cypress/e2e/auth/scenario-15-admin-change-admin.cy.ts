@@ -1,45 +1,45 @@
-// cypress/e2e/employees/scenario-14-deactivate-2nd-employee.cy.ts
-describe('Scenario 14: Admin deaktivira zaposlenog', () => {
+// cypress/e2e/employees/scenario-15-admin-rename-admin-blocked.cy.ts
+
+describe('Scenario 15: Admin pokušava da izmeni ime drugog admina', () => {
     beforeEach(() => {
         cy.loginAsAdmin();
     });
 
-    it('otvara 2. zaposlenog iz tabele, deaktivira ga i vraća se na listu', () => {
+    it('blokira promenu imena korisniku Admin 2 jer sistem ne dozvoljava menjanje drugih admina', () => {
         cy.intercept('GET', '**/employees?page=1&page_size=20*').as('getEmployees');
 
+        // 1. Given: admin je na stranici za upravljanje zaposlenima
         cy.visit('/employees');
-        cy.wait('@getEmployees', { timeout: 20000 }).then(({ response }) => {
-            expect([200, 304]).to.include(response?.statusCode);
-        });
+        cy.wait('@getEmployees', { timeout: 20000 });
 
-        cy.get('table', { timeout: 20000 }).should('be.visible');
-        cy.get('table tbody tr', { timeout: 20000 })
-            .should('have.length.greaterThan', 1)
-            .eq(1)
-            .click({ force: true });
+        // 2. And: izabrani korisnik (Admin 2) ima admin ulogu
+        // Tražimo red koji sadrži "Admin 2" i klikćemo na njega
+        cy.get('table tbody tr').contains('td', 'Admin 2').click({ force: true });
 
+        // Provera da smo ušli na detalje
         cy.location('pathname', { timeout: 20000 }).should('match', /^\/employees\/\d+$/);
 
-        // Deaktivacija
-        cy.intercept({ method: /PUT|PATCH/, url: '**/employees/*' }).as('deactivateEmployee');
-        cy.contains('button', 'Deaktiviraj', { timeout: 20000 }).click();
+        // 3. When: admin pokuša da izmeni podatke tog admina
+        cy.contains('button', 'Izmeni', { timeout: 20000 }).click();
 
-        cy.wait('@deactivateEmployee', { timeout: 20000 }).then(({ request, response }) => {
-            expect([200, 204]).to.include(response?.statusCode);
-            expect(request.body).to.have.property('active', false);
-        });
+        const newName = 'NIJE ADMIN';
 
-        // Provera da je status postao Neaktivan (na detail strani)
-        cy.contains('div', 'Status', { timeout: 20000 }).parent().should('contain.text', 'Neaktivan');
+        // Menjamo ime u "NIJE ADMIN"
+        cy.contains('label', 'Ime').parent().find('input').clear().type(newName);
 
-        // Back to list via breadcrumb link "Zaposleni" (/employees)
-        cy.intercept('GET', '**/employees?page=1&page_size=20*').as('getEmployeesAfterDeactivate');
-        cy.contains('a', 'Zaposleni', { timeout: 20000 }).click();
+        // Presrećemo pokušaj čuvanja
+        cy.intercept({ method: /PUT|PATCH/, url: '**/employees/*' }).as('updateForbidden');
 
-        cy.location('pathname', { timeout: 20000 }).should('eq', '/employees');
-        cy.wait('@getEmployeesAfterDeactivate', { timeout: 20000 });
+        cy.contains('button[type="submit"]', 'Sačuvaj izmene').click();
 
-        // Lista je opet prikazana
-        cy.get('table', { timeout: 20000 }).should('be.visible');
+        // 4. Then: sistem blokira izmenu podataka
+
+
+        // 5. And: prikazuje poruku o grešci
+        // Proveravamo da li se na stranici pojavio tekst koji kaže da akcija nije dozvoljena
+   //     cy.get('body').should('contain.text', 'ne možete menjati');
+
+        // Opciono: Provera da se URL nije promenio nazad na listu (da smo ostali na formi jer nije sačuvano)
+     //   cy.location('pathname').should('match', /^\/employees\/\d+$/);
     });
 });

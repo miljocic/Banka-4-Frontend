@@ -25,8 +25,16 @@ describe('Scenario 13: Admin menja podatke zaposlenog', () => {
         cy.intercept({ method: /PUT|PATCH/, url: '**/employees/*' }).as('updateEmployee');
 
         const newFirstName = 'Milenko';
+        const newPhone = '0641234567';
+        const newDepartment = 'HR';
 
         cy.contains('label', 'Ime').parent().find('input').clear().type(newFirstName);
+        cy.contains('label', /Telefon|Broj telefona/i).parent().find('input').clear().type(newPhone);
+        cy.contains('label', /DEPARTMAN/i)
+            .closest('div') // Idi do prvog zajedničkog kontejnera
+            .find('input')  // Nađi input unutar njega
+            .clear({ force: true })
+            .type('HR', { delay: 100 });
         cy.contains('button[type="submit"]', 'Sačuvaj izmene').click();
 
 
