@@ -117,3 +117,22 @@
   border-radius: 4px;
   display: inline-block;
 }
+
+/* Centriranje naslova Actions */
+.table th:last-child {
+  text-align: center; /* Centriraj naslov */
+  padding-right: 24px; 
+}
+
+/* Poravnanje ćelije gde su dugmići */
+.table td:last-child {
+  text-align: center; /* Centriraj sadržaj ćelije (dugmiće) */
+}
+
+/* Da dugmići unutar ćelije ne beže levo-desno */
+.actionCell { 
+  display: flex; 
+  gap: 12px; 
+  align-items: center; 
+  justify-content: center; /* Dodaj ovo da se dugmići centriraju u odnosu na naslov */
+}

@@ -37,6 +37,7 @@ import ClientTransferHistory from './pages/client/ClientTransferHistory'; // ─
 import ClientPaymentOverview from './pages/client/ClientPaymentOverview';
 import NewPayment       from './pages/client/NewPayment';
 import ClientSecurities from './pages/client/ClientSecurities';
+import ClientPortfolioPage from './pages/client/ClientPortfolioPage';
 
 // Shared
 import NotFound from './pages/NotFound';
@@ -112,6 +113,7 @@ export default function App() {
         <Route path="/transfers/confirm"   element={<ProtectedRoute><ClientRoute><ConfirmTransfer /></ClientRoute></ProtectedRoute>} />
         <Route path="/client/securities" element={<ProtectedRoute><ClientRoute><ClientSecurities /></ClientRoute></ProtectedRoute>} />
         <Route path="/transfers/history"   element={<ProtectedRoute><ClientRoute><ClientTransferHistory /></ClientRoute></ProtectedRoute>} />
+        <Route path="/client/portfolio" element={<ProtectedRoute><ClientRoute><ClientPortfolioPage /></ClientRoute></ProtectedRoute>} />
 
         {/* ADMIN/EMPLOYEE RUTE */}
         <Route path="/admin"       element={<ProtectedRoute><EmployeeRoute><Dashboard      /></EmployeeRoute></ProtectedRoute>} />
@@ -139,13 +141,7 @@ export default function App() {
 
         <Route path="/exchange/rates"      element={<ProtectedRoute><ClientRoute><RatesList /></ClientRoute></ProtectedRoute>} />
         <Route path="/exchange/calculator" element={<ProtectedRoute><ClientRoute><CurrencyCalculator /></ClientRoute></ProtectedRoute>} />
-        <Route path="/portfolio" element={
-        <ProtectedRoute>
-          <EmployeeRoute>
-            <PortfolioPage />
-          </EmployeeRoute>
-        </ProtectedRoute>
-        } />
+        <Route path="/portfolio" element={<ProtectedRoute><EmployeeRoute><PortfolioPage /></EmployeeRoute></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
 

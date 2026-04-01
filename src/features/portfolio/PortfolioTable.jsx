@@ -14,7 +14,7 @@ export default function PortfolioTable({ assets, isAdmin }) {
             <th>PRICE</th>
             <th>PROFIT</th>
             <th>LAST MODIFIED</th>
-            <th style={{ textAlign: 'right' }}>ACTIONS</th>
+            <th>ACTIONS</th>
           </tr>
         </thead>
         <tbody>
