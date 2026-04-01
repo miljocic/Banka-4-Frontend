@@ -8,6 +8,7 @@ import { MOCK_ORDERS } from '../../api/mock';
 import { ORDER_STATUS, USER_ROLE, normalizeOrder, APPROVAL_DECISION } from '../../utils/orders/orderModel';
 import { getOrderPermissions } from '../../utils/orders/orderPermissions';
 import styles from './SupervisorOrdersPage.module.css';
+import { useFetch } from '../../hooks/useFetch';
 
 const FILTERS = [
   { key: 'ALL', label: 'All' },

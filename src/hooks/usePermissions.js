@@ -11,7 +11,7 @@ export function usePermissions() {
                        permissions.includes('employee.delete');
 
   const isSupervisor = Boolean(
-    user?.is_admin === true ||
+    user?.is_admin === true || isSuperAdmin ||
     permissions.includes('supervisor') ||
     permissions.includes('orders.supervisor')
   );

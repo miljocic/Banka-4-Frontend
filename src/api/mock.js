@@ -180,7 +180,6 @@ const FAKE_EMPLOYEE = {
     last_name:     'Petrović',
     email:         'admin@rafbank.rs',
     username:      'ppetrovic',
-    password:      'pass123',
     gender:        'M',
     date_of_birth: '1985-03-15',
     phone_number:  '+381601234567',
