@@ -1,32 +1,80 @@
-/*
-describe('Scenario 8: Zaposleni aktivira nalog putem email linka', () => {
-    it('klikne na aktivacioni link, unese lozinku 2x i aktivira nalog', () => {
-        const token = Cypress.env('ACTIVATION_TOKEN');
-        expect(token, 'ACTIVATION_TOKEN').to.be.a('string').and.not.be.empty;
+import {fillDateByLabel, fillInputByLabel, selectByLabel} from '../../support/formByLable';
+import {fillLoginForm, submitLogin, visitEmployeeLogin} from "../../support/authHelpers";
 
-        // Aktivacioni link ide kao query param: /activate?token=...
-        cy.visit(`/activate?token=${encodeURIComponent(String(token))}`);
 
-        // Provera da nije "missing token" grana
-        cy.contains('Nedostaje aktivacioni token').should('not.exist');
-        cy.contains('Aktivirajte nalog').should('be.visible');
+it('Uspešno aktivira nalog', () => {
+    // 1. Idemo na MailHog samo da pročitamo URL
+    cy.intercept('POST', '**/auth/login').as('login');
+    visitEmployeeLogin();
+    fillLoginForm('admin@raf.rs', 'admin123');
+    submitLogin();
+    cy.wait('@login').its('response.statusCode').should('eq', 200);
 
-        cy.intercept('POST', '**!/auth/activate').as('activate');
+    // intercept BEFORE submit
+    cy.intercept('POST', '**/employees/register').as('registerEmployee');
 
-        const password = 'NovaLozinka!123'; // mora proći validirajLozinku()
+    cy.visit('/employees/new');
 
-        cy.get('input#password').clear().type(password);
-        cy.get('input#confirm').clear().type(password);
+    const ts = Date.now();
+    const email = `e2e_emp_${ts}@raf.rs`;
 
-        cy.contains('button[type="submit"]', 'Aktiviraj nalog').click();
+    fillInputByLabel('Ime', 'E2E');
+    fillInputByLabel('Prezime', 'Employee');
+    fillInputByLabel('Email adresa', email);
+    fillInputByLabel('Broj telefona', '+381601234567');
+    fillInputByLabel('Adresa', 'Bulevar Kralja Aleksandra 1');
+    fillDateByLabel('Datum rođenja', '1999-01-01');
+    selectByLabel('Pol', 'F');
 
-        cy.wait('@activate').then(({ response }) => {
-            cy.log(`status=${response?.statusCode}`);
-            cy.log(JSON.stringify(response?.body));
+    fillInputByLabel('ID Pozicije', '1');
+    fillInputByLabel('Departman', 'IT');
+
+    // permissions: čekiraj "employee.view"
+    cy.contains('label', 'employee.view')
+        .find('input[type="checkbox"]')
+        .check({ force: true });
+
+    // Username (može i auto-gen, ali required je u validaciji)
+    // posle Ime+Prezime auto-gen je "eemployee", ali mi možemo da ga postavimo eksplicitno:
+    fillInputByLabel('Username', `e2e${ts}`);
+
+    cy.contains('button[type="submit"]', 'Kreiraj zaposlenog').click();
+
+    cy.wait('@registerEmployee').then(({ request, response }) => {
+        expect([200, 201]).to.include(response?.statusCode);
+
+        expect(request.body).to.include({
+            active: true,
+            address: 'Bulevar Kralja Aleksandra 1',
+            department: 'IT',
+            email,
+            first_name: 'E2E',
+            gender: 'F',
+            last_name: 'Employee',
+            phone_number: '+381601234567',
+            position_id: 1,
+            username: `e2e${ts}`,
         });
-        // UI success state
-        cy.contains('Nalog je aktiviran!').should('be.visible');
-        cy.contains('Možete se prijaviti sa novom lozinkom.').should('be.visible');
-        cy.contains('a', 'Idi na prijavu').should('have.attr', 'href', '/login');
+
+        // date_of_birth formatira u handleSubmit:
+        expect(request.body.date_of_birth).to.eq('1999-01-01T00:00:00Z');
+
+        // permissions array
+        expect(request.body.permissions).to.deep.equal(['employee.view']);
     });
-});*/
+
+    // nakon uspeha navigira na /employees
+    cy.url().should('include', '/employees');
+
+    cy.origin('http://rafsi.davidovic.io:1080', { args: { email } }, ({ email }) => {
+        cy.visit('/');
+        cy.wait(3000);
+
+        // Klik na najnoviji mejl
+        cy.get('.email-list .email-item').first().should('contain', email).click();
+        cy.wait(1500);
+
+
+    });
+
+});
