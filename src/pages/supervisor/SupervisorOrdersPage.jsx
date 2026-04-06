@@ -146,7 +146,8 @@ export default function SupervisorOrdersPage() {
       const response = ordersData;
       const normalized = (Array.isArray(response) ? response : response?.items ?? []).map(normalizeOrder);
 
-      setOrders(normalized.length > 0 ? normalized : MOCK_ORDERS.map(normalizeOrder));
+      // setOrders(normalized.length > 0 ? normalized : MOCK_ORDERS.map(normalizeOrder));
+      setOrders(normalized);
 
       if (fetchError) {
         setApiError(fetchError?.message || 'Orderi trenutno nisu dostupni. Prikazan je mock prikaz radi razvoja.');
