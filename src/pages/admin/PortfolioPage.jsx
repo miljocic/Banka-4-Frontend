@@ -24,11 +24,11 @@ export default function PortfolioPage() {
   const user = useAuthStore(s => s.user);
   const initFromStorage = useAuthStore(s => s.initFromStorage);
 
-  // --- NOVI STATE ZA PODATKE ---
+  // --- ISPRAVLJEN STATE (Počinjemo sa praznim podacima) ---
   const [data, setData] = useState({
-    stocks: FAKE_PORTFOLIO_ASSETS.filter(a => a.type?.toUpperCase() === 'STOCK'),
-    options: FAKE_PORTFOLIO_ASSETS.filter(a => a.type?.toUpperCase() === 'OPTION'),
-    tax: FAKE_PORTFOLIO_STATS
+    stocks: [],
+    options: [],
+    tax: { taxPaid: 0, taxUnpaid: 0 }
   });
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +40,8 @@ export default function PortfolioPage() {
   const canExercise = can('portfolio.options.exercise');
   const canViewOptions = can('portfolio.options.view') || canExercise;
 
-  // --- API LOGIKA ---
+  // --- ISPRAVLJENA API LOGIKA ---
+  // --- ISPRAVLJENA API LOGIKA ---
   useEffect(() => {
     const loadEverything = async () => {
       if (!user?.id) return;
@@ -48,22 +49,30 @@ export default function PortfolioPage() {
       try {
         setLoading(true);
         let res;
+        
+        // Dinamički biramo endpoint: Actuary/Admin ili običan Client
         if (canManageOTC || canViewOptions) {
           res = await portfolioApi.getActuaryPortfolio(user.id);
         } else {
+          // OVO JE DODATO: Poziv za običnog klijenta ako uslovi iznad nisu ispunjeni
           res = await portfolioApi.getClientPortfolio(user.id);
         }
 
-        const allAssets = res.data.assets || res.data || [];
+        // Tvoj client.js verovatno već vraća res.data kroz interceptor, 
+        // ali za svaki slučaj radimo proveru formata:
+        const rawData = res?.data || res; 
+        const allAssets = Array.isArray(rawData) ? rawData : (rawData?.assets || []);
         
         setData({
           stocks: allAssets.filter(a => a.type?.toUpperCase() === 'STOCK'),
           options: allAssets.filter(a => a.type?.toUpperCase() === 'OPTION'),
-          tax: res.data.tax || { taxPaid: 0, taxUnpaid: 0 }
+          tax: rawData?.tax || { taxPaid: 0, taxUnpaid: 0 }
         });
+
       } catch (err) {
-        console.error("API Error - Ostajem na Mock podacima:", err);
-        // Ne menjamo ništa, state već ima inicijalne Mock vrednosti
+        console.error("API Error na portu 8082:", err);
+        // Resetujemo state na prazno u slučaju greške da UI ne bi "pukao"
+        setData({ stocks: [], options: [], tax: { taxPaid: 0, taxUnpaid: 0 } });
       } finally {
         setLoading(false);
       }

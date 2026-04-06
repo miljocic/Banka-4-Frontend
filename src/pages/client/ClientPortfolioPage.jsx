@@ -1,56 +1,25 @@
 import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { useAuthStore } from '../../store/authStore';
-import { portfolioApi } from '../../api/endpoints/portfolio'; // Zakomentarisano
+import { portfolioApi } from '../../api/endpoints/portfolio';
 import ClientHeader from '../../components/layout/ClientHeader';
 import PortfolioTable from '../../features/portfolio/PortfolioTable';
 import ProfitSummary from '../../features/portfolio/ProfitSummary';
 import TaxSummary from '../../features/portfolio/TaxSummary';
+import Spinner from '../../components/ui/Spinner';
+import Alert from '../../components/ui/Alert';
 import styles from './ClientPortfolioPage.module.css';
-
-const MOCK_PORTFOLIO = {
-  stocks: [
-    { 
-      id: 1, 
-      ticker: 'AAPL',           // Bilo je symbol
-      name: 'Apple Inc.', 
-      amount: 10,               // Bilo je quantity
-      price: 175.20, 
-      profit: 25.50,            // Dodato polje za profit kolonu
-      lastModified: '21-03-2026', 
-      type: 'STOCK' 
-    },
-    { 
-      id: 2, 
-      ticker: 'TSLA', 
-      name: 'Tesla Motors', 
-      amount: 5, 
-      price: 160.50, 
-      profit: -12.30,           // Negativan profit
-      lastModified: '21-03-2026',
-      type: 'STOCK' 
-    },
-    { 
-      id: 3, 
-      ticker: 'MSFT', 
-      name: 'Microsoft', 
-      amount: 8, 
-      price: 420.10, 
-      profit: 105.00, 
-      lastModified: '21-03-2026',
-      type: 'STOCK' 
-    }
-  ],
-  tax: {
-    taxPaid: 1250.50,   // Komponenta traži stats.taxPaid
-    taxUnpaid: 340.20   // Komponenta traži stats.taxUnpaid
-  }
-};
 
 export default function ClientPortfolioPage() {
   const pageRef = useRef(null);
-  const [portfolio, setPortfolio] = useState(null);
+  
+  // State usklađen sa strukturom podataka
+  const [portfolio, setPortfolio] = useState({
+    stocks: [],
+    tax: { taxPaid: 0, taxUnpaid: 0 }
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const user = useAuthStore(s => s.user);
   const initFromStorage = useAuthStore(s => s.initFromStorage);
@@ -60,24 +29,35 @@ export default function ClientPortfolioPage() {
     if (!user) initFromStorage();
   }, [user, initFromStorage]);
 
-  // 2. Učitavanje podataka - SADA KORISTI MOCK
+  // 2. Učitavanje podataka preko endpointa (Trading API - Port 8082)
   useEffect(() => {
     const loadData = async () => {
-      // if (!user?.id) return; // Možeš ostaviti ili skloniti dok testiraš mock
-try {
-  setLoading(true);
-  const res = await portfolioApi.getClientPortfolio(user.id);
-  setPortfolio(res.data);
-} catch (err) {
-  console.error("API ne radi, koristim mock podatke:", err);
-  // OVO TI OMOGUĆAVA DA RADIŠ DALJE NA UI DOK JE BACKEND OFFLINE
-  setPortfolio(MOCK_PORTFOLIO); 
-} finally {
-  setLoading(false);
-}
+      if (!user?.id) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const res = await portfolioApi.getClientPortfolio(user.id);
+        
+        // Uzimamo podatke (client.js interceptor bi trebalo da već vraća res.data)
+        const rawData = res?.data || res;
+        const allAssets = Array.isArray(rawData) ? rawData : (rawData?.assets ?? []);
+
+        setPortfolio({
+          stocks: allAssets.filter(a => a.type?.toUpperCase() === 'STOCK'),
+          tax: rawData?.tax ?? { taxPaid: 0, taxUnpaid: 0 }
+        });
+      } catch (err) {
+        console.error("Greška pri učitavanju klijentskog portfolija:", err);
+        setError("Nije moguće učitati podatke portfolija.");
+      } finally {
+        setLoading(false);
+      }
     };
+
     loadData();
-  }, [user]);
+  }, [user?.id]);
 
   // 3. GSAP Animacija
   useLayoutEffect(() => {
@@ -95,8 +75,7 @@ try {
     }
   }, [loading, portfolio]);
 
-  if (loading) return <div className={styles.loader}>Učitavanje vašeg portfolija...</div>;
-  if (!portfolio) return <div className={styles.error}>Nije moguće učitati podatke portfolija.</div>;
+  if (!user) return null;
 
   return (
     <div ref={pageRef} className={styles.stranica}>
@@ -112,40 +91,48 @@ try {
               <h1 className={styles.pageTitle}>Moj Portfolio</h1>
               <p className={styles.pageDesc}>Pregled vaših akcija i poresko stanje u realnom vremenu.</p>
             </div>
-            <TaxSummary stats={portfolio.tax} />
+            {!loading && !error && <TaxSummary stats={portfolio.tax} />}
           </div>
         </div>
 
-        {/* Profitna kartica */}
-        <div className="page-anim">
-          <ProfitSummary assets={portfolio.stocks} />
-        </div>
+        {loading ? (
+          <div className={styles.center}><Spinner /></div>
+        ) : error ? (
+          <div className={styles.center}><Alert tip="greska" poruka={error} /></div>
+        ) : (
+          <>
+            {/* Profitna kartica */}
+            <div className="page-anim">
+              <ProfitSummary assets={portfolio.stocks} />
+            </div>
 
-        {/* Tabela sa akcijama */}
-        <div className={`page-anim ${styles.tableCard}`}>
-          <div className={styles.cardHeader}>
-            <h3>Moje akcije (Stocks)</h3>
-          </div>
-          <PortfolioTable 
-            assets={portfolio.stocks} 
-            isAdmin={false} 
-          />
-        </div>
+            {/* Tabela sa akcijama */}
+            <div className={`page-anim ${styles.tableCard}`}>
+              <div className={styles.cardHeader}>
+                <h3>Moje akcije (Stocks)</h3>
+              </div>
+              <PortfolioTable 
+                assets={portfolio.stocks} 
+                isAdmin={false} 
+              />
+            </div>
 
-        {/* Info labela */}
-        <div className="page-anim" style={{ marginTop: '32px', paddingBottom: '40px' }}>
-          <div style={{ 
-            backgroundColor: '#f1f5f9', 
-            padding: '16px', 
-            borderRadius: '12px',
-            textAlign: 'center'
-          }}>
-            <p style={{ fontSize: '13px', color: '#475569', margin: 0 }}>
-              💡 <strong>Napomena:</strong> Za prodaju određenih akcija kliknite na dugme <strong>SELL</strong>. 
-              Sredstva će biti automatski prebačena na vaš primarni račun nakon obrade transakcije.
-            </p>
-          </div>
-        </div>
+            {/* Info labela */}
+            <div className="page-anim" style={{ marginTop: '32px', paddingBottom: '40px' }}>
+              <div style={{ 
+                backgroundColor: '#f1f5f9', 
+                padding: '16px', 
+                borderRadius: '12px',
+                textAlign: 'center'
+              }}>
+                <p style={{ fontSize: '13px', color: '#475569', margin: 0 }}>
+                  💡 <strong>Napomena:</strong> Za prodaju određenih akcija kliknite na dugme <strong>SELL</strong>. 
+                  Sredstva će biti automatski prebačena na vaš primarni račun nakon obrade transakcije.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
