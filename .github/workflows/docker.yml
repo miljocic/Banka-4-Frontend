@@ -1,0 +1,24 @@
+name: Docker
+run-name: Building image for ${{ github.repository }}
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  end-to-end:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out ${{ github.ref }} after a ${{ github.event_name }} event
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ...
