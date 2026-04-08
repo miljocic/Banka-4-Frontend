@@ -3,7 +3,8 @@ FROM node:lts-alpine AS build
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci
 
 COPY ./src ./src
 COPY ./public ./public
