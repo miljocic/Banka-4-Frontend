@@ -11,13 +11,6 @@ import { portfolioApi } from '../../api/endpoints/portfolio';
 import SellOrderModal from '../../features/portfolio/SellOrderModal';
 import styles from './PortfolioPage.module.css';
 
-const FAKE_PORTFOLIO_ASSETS = [
-    { id: 1, type: 'Stock', ticker: 'AAPL', amount: 100, price: 150, profit: 500, lastModified: '2026-03-21', status: 'Active' },
-    { id: 2, type: 'Option', ticker: 'MSFT', optionType: 'CALL', strike: 280, current: 300, settlement: '2026-04-25', status: 'ITM' },
-    { id: 3, type: 'Option', ticker: 'TSLA', optionType: 'PUT', strike: 700, current: 680, settlement: '2026-03-20', status: 'OTM' }
-];
-
-const FAKE_PORTFOLIO_STATS = { taxPaid: 1200, taxUnpaid: 450 };
 
 export default function PortfolioPage() {
   const pageRef = useRef(null);
@@ -31,7 +24,7 @@ export default function PortfolioPage() {
     options: [],
     tax: { taxPaid: 0, taxUnpaid: 0 }
   });
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [sellModal, setSellModal] = useState(null);
 
   useEffect(() => {
@@ -66,7 +59,7 @@ export default function PortfolioPage() {
         const allAssets = Array.isArray(rawData) ? rawData : (rawData?.assets || []);
         
         setData({
-          stocks: allAssets.filter(a => a.type?.toUpperCase() === 'STOCK'),
+          stocks: allAssets.filter(a => a.type?.toUpperCase() !== 'OPTION'),
           options: allAssets.filter(a => a.type?.toUpperCase() === 'OPTION'),
           tax: rawData?.tax || { taxPaid: 0, taxUnpaid: 0 }
         });

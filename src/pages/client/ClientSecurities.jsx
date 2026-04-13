@@ -223,21 +223,21 @@ function OrderModal({ security, activeTab, isEmployee, onClose }) {
             <div className={styles.successBanner}>
               {isEmployee
                 ? orderStatus === 'APPROVED'
-                  ? '✓ Order je kreiran i odmah odobren.'
+                  ? '✓ Order je odobren i čeka izvršenje.'
                   : '✓ Order je kreiran i čeka odobrenje.'
                 : afterHours
                   ? '✓ Order je kreiran. Izvršiće se kada berza otvori.'
                   : '✓ Order je kreiran i u obradi.'}
             </div>
-            {(isEmployee || afterHours) && (
-              <p style={{ fontSize: 13, color: 'var(--tx-2)', marginTop: 12 }}>
-                {isEmployee && orderStatus === 'APPROVED'
-                  ? 'Order je izvršen u okviru dnevnog limita.'
-                  : afterHours && !isEmployee
+            <p style={{ fontSize: 13, color: 'var(--tx-2)', marginTop: 12 }}>
+              {isEmployee && orderStatus === 'APPROVED'
+                ? 'Order je odobren. Hartija će se pojaviti u portfoliju nakon izvršenja.'
+                : isEmployee
+                  ? 'Novac će biti skinut sa računa tek nakon odobrenja.'
+                  : afterHours
                     ? 'Tržište je zatvoreno. Novac i hartija će biti ažurirani kada berza otvori.'
-                    : 'Novac će biti skinut sa računa tek nakon odobrenja.'}
-              </p>
-            )}
+                    : 'Order je u obradi. Hartija će se pojaviti u portfoliju nakon izvršenja.'}
+            </p>
           </div>
         ) : showConfirm ? (
           /* ── Dijalog potvrde ── */
@@ -493,10 +493,11 @@ export default function ClientSecurities() {
 
  
   const fetcher = useCallback(() => {
-    if (activeTab === 'STOCK')   return securitiesApi.getStocks();
-    if (activeTab === 'FUTURES') return securitiesApi.getFutures();
-    if (activeTab === 'FOREX')   return securitiesApi.getForex();
-    if (activeTab === 'OPTIONS') return securitiesApi.getOptions();
+    const params = { page: 1, page_size: 500 };
+    if (activeTab === 'STOCK')   return securitiesApi.getStocks(params);
+    if (activeTab === 'FUTURES') return securitiesApi.getFutures(params);
+    if (activeTab === 'FOREX')   return securitiesApi.getForex(params);
+    if (activeTab === 'OPTIONS') return securitiesApi.getOptions(params);
     return Promise.resolve([]);
   }, [activeTab]);
 

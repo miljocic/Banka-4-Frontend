@@ -116,12 +116,12 @@ export default function SellOrderModal({ asset, clientId, isEmployee, onClose, o
         {submitted ? (
           <div style={{ padding: '2rem', textAlign: 'center' }}>
             <div className={modalStyles.successBanner}>
-              {isEmployee ? '✓ Sell order je kreiran i čeka odobrenje.' : '✓ Sell order je uspešno kreiran i odobren.'}
+              {isEmployee ? '✓ Sell order je kreiran i čeka odobrenje.' : '✓ Sell order je kreiran i u obradi.'}
             </div>
             <p style={{ fontSize: 13, color: 'var(--tx-2)', marginTop: 12 }}>
               {isEmployee
                 ? 'Akcije će biti sklonjene sa portfolija tek nakon odobrenja.'
-                : 'Akcije su sklonjene sa vašeg portfolija.'}
+                : 'Akcije će biti sklonjene sa portfolija nakon izvršenja ordera.'}
             </p>
           </div>
         ) : showConfirm ? (

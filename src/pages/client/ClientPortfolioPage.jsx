@@ -37,7 +37,7 @@ export default function ClientPortfolioPage() {
         const rawData = res?.data || res;
         const allAssets = Array.isArray(rawData) ? rawData : (rawData?.assets ?? []);
         setPortfolio({
-          stocks: allAssets.filter(a => a.type?.toUpperCase() === 'STOCK'),
+          stocks: allAssets.filter(a => a.type?.toUpperCase() !== 'OPTION'),
           tax: rawData?.tax ?? { taxPaid: 0, taxUnpaid: 0 },
         });
       } catch (err) {

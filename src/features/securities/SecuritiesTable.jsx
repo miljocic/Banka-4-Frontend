@@ -1,4 +1,8 @@
+import { useState, useEffect } from 'react';
+import Pagination from '../../components/ui/Pagination';
 import styles from './SecuritiesTable.module.css';
+
+const PAGE_SIZE = 20;
 
 const SORT_KEYS = {
   price: 'price',
@@ -30,11 +34,16 @@ export default function SecuritiesTable({
   securities,
   selectedId,
   onSelect,
-  onAction,   // { label: 'Kupi' | 'Kreiraj nalog', handler: fn }
+  onAction,
   sortBy,
   sortDir,
   onSort,
 }) {
+  const [page, setPage] = useState(1);
+
+  useEffect(() => { setPage(1); }, [securities]);
+
+  const paged    = securities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const isOption  = securities.length > 0 && securities[0].type === 'OPTION';
   const isFutures = securities.length > 0 && securities[0].type === 'FUTURES';
 
@@ -80,6 +89,11 @@ export default function SecuritiesTable({
       <table className={styles.table}>
         <thead>
           <tr>
+            <th className={styles.th} style={{ color: 'var(--tx-3)', fontWeight: 400, fontSize: 11 }} colSpan={20}>
+              Stranica {page} od {Math.max(1, Math.ceil(securities.length / PAGE_SIZE))} · {securities.length} ukupno
+            </th>
+          </tr>
+          <tr>
             <th className={styles.th}>Ticker</th>
             <th className={styles.th}>Naziv</th>
             <th className={styles.th}>Berza</th>
@@ -97,7 +111,7 @@ export default function SecuritiesTable({
           </tr>
         </thead>
         <tbody>
-          {securities.map(sec => {
+          {paged.map(sec => {
             const isSelected = selectedId === sec.id;
             const changePositive = sec.change >= 0;
             return (
@@ -159,6 +173,7 @@ export default function SecuritiesTable({
           })}
         </tbody>
       </table>
+      <Pagination page={page} pageSize={PAGE_SIZE} total={securities.length} onPageChange={setPage} />
     </div>
   );
 }

@@ -5,7 +5,10 @@ import { useFetch } from '../../hooks/useFetch';
 import Navbar from '../../components/layout/Navbar';
 import Spinner from '../../components/ui/Spinner';
 import Alert from '../../components/ui/Alert';
+import Pagination from '../../components/ui/Pagination';
 import styles from './ExchangesPage.module.css';
+
+const PAGE_SIZE = 12;
 
 function isExchangeOpen(exchange) {
   if (!exchange.open_time || !exchange.close_time) return null;
@@ -32,13 +35,19 @@ export default function ExchangesPage() {
   const ref = useRef(null);
   const [toggling, setToggling] = useState(null);
   const [exchanges, setExchanges] = useState([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const fetcher = useCallback(() => stockExchangeApi.getAll(), []);
-  const { data: rawData, loading, error } = useFetch(fetcher, []);
+  const fetcher = useCallback(
+    () => stockExchangeApi.getAll({ page, page_size: PAGE_SIZE }),
+    [page]
+  );
+  const { data: rawData, loading, error } = useFetch(fetcher, [page]);
 
   useEffect(() => {
     const list = Array.isArray(rawData) ? rawData : rawData?.data ?? [];
     setExchanges(list);
+    if (rawData?.total != null) setTotal(rawData.total);
   }, [rawData]);
 
   useLayoutEffect(() => {
@@ -82,78 +91,81 @@ export default function ExchangesPage() {
         ) : exchanges.length === 0 ? (
           <Alert tip="info" poruka="Nema dostupnih berzi." />
         ) : (
-          <div className={styles.grid}>
-            {exchanges.map(ex => {
-              const openStatus = isExchangeOpen(ex);
-              return (
-                <div key={ex.mic_code} className={`exc-anim ${styles.card}`}>
-                  <div className={styles.cardHeader}>
-                    <div>
-                      <h3 className={styles.cardName}>{ex.name || ex.acronym}</h3>
-                      <span className={styles.cardMic}>{ex.mic_code}</span>
+          <>
+            <div className={styles.grid}>
+              {exchanges.map((ex, idx) => {
+                const openStatus = isExchangeOpen(ex);
+                return (
+                  <div key={ex.mic_code} className={`exc-anim ${styles.card}`}>
+                    <div className={styles.cardHeader}>
+                      <div>
+                        <h3 className={styles.cardName}>{ex.name || ex.acronym}</h3>
+                        <span className={styles.cardMic}>{ex.mic_code}</span>
+                      </div>
+                      <div className={styles.statusGroup}>
+                        {openStatus === true && (
+                          <span className={styles.statusOpen}>Otvorena</span>
+                        )}
+                        {openStatus === false && (
+                          <span className={styles.statusClosed}>Zatvorena</span>
+                        )}
+                        {openStatus === null && (
+                          <span className={styles.statusUnknown}>N/A</span>
+                        )}
+                      </div>
                     </div>
-                    <div className={styles.statusGroup}>
-                      {openStatus === true && (
-                        <span className={styles.statusOpen}>Otvorena</span>
-                      )}
-                      {openStatus === false && (
-                        <span className={styles.statusClosed}>Zatvorena</span>
-                      )}
-                      {openStatus === null && (
-                        <span className={styles.statusUnknown}>N/A</span>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className={styles.cardBody}>
-                    <div className={styles.infoRow}>
-                      <span className={styles.label}>Akronim</span>
-                      <span className={styles.value}>{ex.acronym || '—'}</span>
+                    <div className={styles.cardBody}>
+                      <div className={styles.infoRow}>
+                        <span className={styles.label}>Akronim</span>
+                        <span className={styles.value}>{ex.acronym || '—'}</span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span className={styles.label}>Država</span>
+                        <span className={styles.value}>{ex.polity || '—'}</span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span className={styles.label}>Valuta</span>
+                        <span className={styles.value}>{ex.currency || '—'}</span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span className={styles.label}>Radno vreme</span>
+                        <span className={styles.value}>
+                          {ex.open_time && ex.close_time
+                            ? `${ex.open_time} — ${ex.close_time}`
+                            : '—'}
+                        </span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span className={styles.label}>Vremenska zona</span>
+                        <span className={styles.value}>UTC{ex.time_zone >= 0 ? '+' : ''}{ex.time_zone ?? '—'}</span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span className={styles.label}>Trgovanje</span>
+                        <span className={`${styles.value} ${ex.trading_enabled ? styles.tradingOn : styles.tradingOff}`}>
+                          {ex.trading_enabled ? 'Omogućeno' : 'Onemogućeno'}
+                        </span>
+                      </div>
                     </div>
-                    <div className={styles.infoRow}>
-                      <span className={styles.label}>Država</span>
-                      <span className={styles.value}>{ex.polity || '—'}</span>
-                    </div>
-                    <div className={styles.infoRow}>
-                      <span className={styles.label}>Valuta</span>
-                      <span className={styles.value}>{ex.currency || '—'}</span>
-                    </div>
-                    <div className={styles.infoRow}>
-                      <span className={styles.label}>Radno vreme</span>
-                      <span className={styles.value}>
-                        {ex.open_time && ex.close_time
-                          ? `${ex.open_time} — ${ex.close_time}`
-                          : '—'}
-                      </span>
-                    </div>
-                    <div className={styles.infoRow}>
-                      <span className={styles.label}>Vremenska zona</span>
-                      <span className={styles.value}>UTC{ex.time_zone >= 0 ? '+' : ''}{ex.time_zone ?? '—'}</span>
-                    </div>
-                    <div className={styles.infoRow}>
-                      <span className={styles.label}>Trgovanje</span>
-                      <span className={`${styles.value} ${ex.trading_enabled ? styles.tradingOn : styles.tradingOff}`}>
-                        {ex.trading_enabled ? 'Omogućeno' : 'Onemogućeno'}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className={styles.cardFooter}>
-                    <button
-                      className={ex.trading_enabled ? styles.disableBtn : styles.enableBtn}
-                      onClick={() => handleToggle(ex.mic_code)}
-                      disabled={toggling === ex.mic_code}
-                    >
-                      {toggling === ex.mic_code
-                        ? 'Čekajte...'
-                        : ex.trading_enabled ? 'Obustavi trgovanje' : 'Omogući trgovanje'
-                      }
-                    </button>
+                    <div className={styles.cardFooter}>
+                      <button
+                        className={ex.trading_enabled ? styles.disableBtn : styles.enableBtn}
+                        onClick={() => handleToggle(ex.mic_code)}
+                        disabled={toggling === ex.mic_code}
+                      >
+                        {toggling === ex.mic_code
+                          ? 'Čekajte...'
+                          : ex.trading_enabled ? 'Obustavi trgovanje' : 'Omogući trgovanje'
+                        }
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
+          </>
         )}
       </main>
     </div>
