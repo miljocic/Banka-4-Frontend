@@ -41,3 +41,4 @@ src/
 ## Mock podaci
 
 U development modu (`npm run dev`) automatski se ucitava mock interceptor koji simulira backend odgovore. U produkcijskom buildu mock se ne ucitava.
+
