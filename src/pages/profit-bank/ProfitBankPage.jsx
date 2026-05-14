@@ -5,9 +5,7 @@ import Alert from '../../components/ui/Alert';
 import { useFetch } from '../../hooks/useFetch';
 import { investmentFundsApi } from '../../api/endpoints/investmentFunds';
 import { accountsApi } from '../../api/endpoints/accounts';
-import { portfolioApi } from '../../api/endpoints/portfolio';
 import styles from './ProfitBankPage.module.css';
-import { useAuthStore } from '../../store/authStore';
 
 const TAB = {
   ACTUARIES: 'ACTUARIES',
@@ -62,8 +60,6 @@ export default function ProfitBankPage() {
     refetch: refetchActuaries,
   } = useFetch(() => investmentFundsApi.getActuaryPerformances(), []);
 
-  const userId = useAuthStore(s => s.user?.employee_id ?? s.user?.id);
-
   const {
     data: fundsResponse,
     loading: fundsLoading,
@@ -84,15 +80,7 @@ export default function ProfitBankPage() {
   const {
     data: bankAccountsResponse,
     loading: bankAccountsLoading,
-  } = useFetch(() => accountsApi.getAll(), []);
-
-  const {
-    data: actuaryPortfolioResponse,
-    loading: actuaryPortfolioLoading,
-  } = useFetch(
-    () => (userId ? portfolioApi.getActuaryPortfolio(userId) : Promise.resolve([])),
-    [userId]
-  );
+  } = useFetch(() => accountsApi.getBankAccounts(), []);
 
   const actuaries = useMemo(() => {
     const raw = Array.isArray(actuariesResponse)
@@ -128,34 +116,69 @@ export default function ProfitBankPage() {
       : bankAccountsResponse?.data ?? bankAccountsResponse?.content ?? [];
   }, [bankAccountsResponse]);
 
-  const actuaryPortfolio = useMemo(() => {
-    return Array.isArray(actuaryPortfolioResponse)
-      ? actuaryPortfolioResponse
-      : actuaryPortfolioResponse?.data ?? [];
-  }, [actuaryPortfolioResponse]);
+  const { data: allFundsResponse } = useFetch(
+    () => investmentFundsApi.getFunds({ page: 1, page_size: 200 }),
+    []
+  );
+
+  
+
+ const allFunds = useMemo(() => {
+    if (Array.isArray(allFundsResponse?.data)) return allFundsResponse.data;
+    if (Array.isArray(allFundsResponse)) return allFundsResponse;
+    return [];
+  }, [allFundsResponse]);
+
+  const fundByName = useMemo(() => {
+    const map = new Map();
+
+    allFunds.forEach((f) => {
+      const name = f?.name ?? f?.fund_name;
+      if (name) map.set(name, f);
+    });
+
+    return map;
+  }, [allFunds]);
+
+  const fundIdByName = useMemo(() => {
+    const map = new Map();
+    allFunds.forEach((f) => {
+      const name = f?.name ?? f?.fund_name;
+      const id = f?.fund_id ?? f?.id;
+      if (name && id != null) {
+        map.set(name, id);
+      }
+    });
+    return map;
+  }, [allFunds]);
 
   function openFundAction(type, fund) {
-    const firstBankAccount =
-      bankAccounts.find(acc =>
-        String(acc.account_type ?? acc.accountType ?? '').toLowerCase() === 'fund'
-      ) ??
-      bankAccounts[0];
+    const firstBankAccount = bankAccounts[0];
 
-    const bankAccountNumber =
-      firstBankAccount?.account_number ??
-      firstBankAccount?.accountNumber ??
-      firstBankAccount?.AccountNumber ??
-      '';
+    const fullFund = fundByName.get(fund?.fund_name ?? fund?.name);
+
 
     setForm({
-      bankAccountNumber,
+      bankAccountNumber:
+        firstBankAccount?.AccountNumber ??
+        firstBankAccount?.account_number ??
+        firstBankAccount?.accountNumber ??
+        '',
       amount: '',
     });
 
     setModalState({
       open: true,
       type,
-      fund,
+      fund: {
+        ...fund,
+        fund_id: fullFund?.fund_id ?? fund?.fund_id ?? fund?.id,
+        name: fullFund?.name ?? fund?.fund_name ?? fund?.name,
+        liquid_assets: fullFund?.liquid_assets ?? 0,
+        account_number: fullFund?.account_number ?? '',
+        minimum_contribution: fullFund?.minimum_contribution,
+        description: fullFund?.description,
+      },
     });
   }
 
@@ -177,6 +200,7 @@ export default function ProfitBankPage() {
 
     const amount = Number(form.amount);
     const fund = modalState.fund;
+    const fundId = fund?.fund_id ?? fund?.id;
 
     if (!form.bankAccountNumber) {
       setFeedback({ type: 'greska', text: 'Izaberite bankovni račun.' });
@@ -200,14 +224,14 @@ export default function ProfitBankPage() {
 
     try {
       if (modalState.type === ACTION.DEPOSIT) {
-        await investmentFundsApi.depositToFund(fund.fund_id, {
+        await investmentFundsApi.investInFund(fundId, {
           account_number: form.bankAccountNumber,
           amount,
         });
 
         setFeedback({ type: 'uspeh', text: 'Uplata u fond je uspešno evidentirana.' });
       } else {
-        await investmentFundsApi.withdrawFromFund(fund.fund_id, {
+        await investmentFundsApi.withdrawFromFund(fundId, {
           account_number: form.bankAccountNumber,
           amount,
         });
@@ -342,48 +366,6 @@ export default function ProfitBankPage() {
                       )}
                     </tbody>
                   </table>
-                </div>
-
-                <div style={{ padding: '20px 28px 0' }}>
-                  <div className={styles.sectionEyebrow} style={{ marginBottom: 10 }}>
-                    Portfolio aktuara
-                  </div>
-                  {actuaryPortfolioLoading ? (
-                    <div className={styles.loadingState} style={{ marginTop: 0 }}>
-                      Učitavanje portfolija...
-                    </div>
-                  ) : (
-                    <div className={styles.tableWrap}>
-                      <table className={styles.table}>
-                        <thead>
-                          <tr>
-                            <th>Ticker</th>
-                            <th>Naziv</th>
-                            <th>Količina</th>
-                            <th>Vrednost</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {actuaryPortfolio.length === 0 ? (
-                            <tr>
-                              <td colSpan="4" className={styles.emptyTable}>
-                                Nema stavki u portfoliju.
-                              </td>
-                            </tr>
-                          ) : (
-                            actuaryPortfolio.map((item, index) => (
-                              <tr key={item.id ?? item.asset_id ?? index}>
-                                <td>{item.ticker ?? '—'}</td>
-                                <td>{item.name ?? item.asset_name ?? '—'}</td>
-                                <td>{item.quantity ?? item.volume ?? '—'}</td>
-                                <td>{formatRSD(item.value_rsd ?? item.total_value_rsd ?? item.current_value ?? 0)}</td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
                 </div>
               </>
             )}
@@ -596,22 +578,18 @@ export default function ProfitBankPage() {
                       {bankAccountsLoading ? 'Učitavanje računa...' : 'Izaberite račun...'}
                     </option>
 
-                    {bankAccounts.map((account, index) => {
-                      const number =
-                        account.account_number ??
-                        account.accountNumber ??
-                        account.AccountNumber ??
-                        '';
-
-                      const name =
-                        account.name ??
-                        account.Name ??
-                        account.owner_name ??
-                        `Račun ${index + 1}`;
+                    {bankAccounts.map((a, i) => {
+                      const num = a.AccountNumber ?? a.account_number ?? a.accountNumber ?? a.number ?? '';
+                      const name = a.Name ?? a.name ?? a.owner_name ?? a.ownerName ?? a.owner ?? `Račun ${i + 1}`;
+                      const bal = a.Balance ?? a.AvailableBalance ?? a.balance ?? a.available_balance ?? a.availableBalance;
+                      const cur = a.Currency?.Code ?? a.currency ?? '';
 
                       return (
-                        <option key={number || index} value={number}>
-                          {name}{number ? ` — ${number}` : ''}
+                        <option key={num || i} value={num}>
+                          {name}{num ? ` — ${num}` : ''}
+                          {bal != null
+                            ? ` (${Number(bal).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}${cur ? ` ${cur}` : ''})`
+                            : ''}
                         </option>
                       );
                     })}
