@@ -10,6 +10,8 @@ import OfferModal from './components/OfferModal';
 import styles from './OtcPortalPage.module.css';
 import { useSearchParams } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
+import Toast from '../../components/ui/Toast';
+import { diffOffers, summarizeEvents } from './utils/otcNotifications';
 
 const TAB = {
   DOSTUPNE: 'DOSTUPNE',
@@ -338,6 +340,14 @@ function AktivnePonude() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
+  
+  const [notifCount, setNotifCount] = useState(0);
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastOpen, setToastOpen] = useState(false);
+
+  const prevOffersRef = useRef([]);
+  const pollingRef = useRef(null);
+  const initialLoadDoneRef = useRef(false);
 
   useEffect(() => {
     loadOffers();
@@ -357,20 +367,38 @@ function AktivnePonude() {
     loadAccounts();
   }, [partyId, isClient]);
 
-  async function loadOffers() {
+  async function loadOffers({ silent = false } = {}) {
     try {
-      setLoading(true);
-      setError('');
+      if (!silent) {
+        setLoading(true);
+        setError('');
+      }
+
       const res = await otcApi.getMyNegotiations();
-      setOffers(extractArray(res));
+      const list = extractArray(res);
+
+      if (initialLoadDoneRef.current) {
+        const events = diffOffers(prevOffersRef.current, list);
+        if (events.length > 0) {
+          setNotifCount(c => c + events.length);
+          setToastMsg(summarizeEvents(events) ?? 'Imate nove OTC promene.');
+          setToastOpen(true);
+        }
+      } else {
+        initialLoadDoneRef.current = true;
+      }
+
+      prevOffersRef.current = list;
+      setOffers(list);
     } catch {
-      setError('Greška pri učitavanju aktivnih ponuda.');
+      if (!silent) setError('Greška pri učitavanju aktivnih ponuda.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
   function openModal(offer) {
+    setNotifCount(0);
     setSelected(offer);
     setModalMode('view');
     setActionError('');
@@ -474,7 +502,25 @@ function AktivnePonude() {
       <div className={styles.sectionHeader}>
         <div>
           <div className={styles.sectionEyebrow}>OTC Ponude i Ugovori</div>
-          <h2 className={styles.sectionTitle}>Aktivne ponude</h2>
+          <h2 className={styles.sectionTitle}>
+            Aktivne ponude
+            {notifCount > 0 && (
+              <span
+                style={{
+                  marginLeft: 10,
+                  fontSize: 12,
+                  padding: '2px 8px',
+                  borderRadius: 999,
+                  background: '#ef4444',
+                  color: 'white',
+                  verticalAlign: 'middle',
+                }}
+                title="Nove promene"
+              >
+                {notifCount}
+              </span>
+            )}
+          </h2>
         </div>
       </div>
 
@@ -655,6 +701,8 @@ function AktivnePonude() {
           </div>
         </div>
       )}
+
+      <Toast open={toastOpen} message={toastMsg} onClose={() => setToastOpen(false)} />
     </section>
   );
 }
