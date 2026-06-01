@@ -4,6 +4,7 @@ import { auditLogsApi } from '../../api/endpoints/auditLogs';
 import Navbar from '../../components/layout/Navbar';
 import Spinner from '../../components/ui/Spinner';
 import Alert from '../../components/ui/Alert';
+import Pagination from '../../components/ui/Pagination';
 import styles from './AuditLogPage.module.css';
 
 const ACTION_OPTIONS = [
@@ -45,6 +46,8 @@ const EMPTY_FILTERS = {
   date_to: '',
 };
 
+const PAGE_SIZE = 20;
+
 function actionLabel(action) {
   if (ACTION_LABELS[action]) return ACTION_LABELS[action];
   return action ? action.replaceAll('_', ' ').toLowerCase() : 'Akcija';
@@ -57,6 +60,22 @@ function unwrapList(response) {
   if (Array.isArray(body?.content)) return body.content;
   if (Array.isArray(body?.items)) return body.items;
   return [];
+}
+
+function metadataBody(response) {
+  if (response?.total_pages || response?.totalPages || response?.total_page) return response;
+  if (response?.data && !Array.isArray(response.data)) return response.data;
+  return response;
+}
+
+function unwrapTotalPages(response) {
+  const body = metadataBody(response);
+  return Number(body?.total_pages ?? body?.totalPages ?? body?.total_page ?? body?.totalPagesCount ?? 1);
+}
+
+function unwrapTotal(response, fallbackCount) {
+  const body = metadataBody(response);
+  return Number(body?.total ?? body?.total_count ?? body?.totalCount ?? fallbackCount);
 }
 
 function formatDate(value) {
@@ -94,8 +113,8 @@ function actorName(entry) {
   const fullName = [actor?.first_name ?? actor?.firstName, actor?.last_name ?? actor?.lastName]
     .filter(Boolean)
     .join(' ');
-  const actorId = entry.actor_id ?? entry.actorId ?? entry.user_id ?? entry.userId ?? entry.employee_id ?? entry.employeeId ?? entry.performed_by_id ?? entry.performedById;
-  return fullName || actor?.email || entry.actor_email || entry.actorEmail || entry.user_email || entry.userEmail || entry.username || entry.performed_by || entry.performedBy || (actorId != null ? `Korisnik #${actorId}` : '-');
+  const actorId = entry.actor_id ?? entry.actorId ?? entry.user_id ?? entry.userId ?? entry.employee_id ?? entry.employeeId ?? entry.performed_by_id ?? entry.performedById ?? entry.performed_by_employee_id ?? entry.performedByEmployeeId;
+  return fullName || actor?.email || entry.actor_email || entry.actorEmail || entry.user_email || entry.userEmail || entry.username || (actorId != null ? `Korisnik #${actorId}` : entry.performed_by || entry.performedBy || '-');
 }
 
 function targetName(entry) {
@@ -166,16 +185,27 @@ export default function AuditLogPage() {
   const [logs, setLogs] = useState([]);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (nextPage = 1, nextFilters = EMPTY_FILTERS) => {
     setLoading(true);
     setError(null);
+    const params = Object.fromEntries(
+      Object.entries(nextFilters).filter(([, value]) => String(value).trim() !== '')
+    );
 
     try {
-      const response = await auditLogsApi.getAll();
-      setLogs(unwrapList(response).map(normalizeEntry));
+      const response = await auditLogsApi.getAll({ page: nextPage, page_size: PAGE_SIZE, ...params });
+      const normalizedLogs = unwrapList(response).map(normalizeEntry);
+      const responseTotalPages = unwrapTotalPages(response);
+      setLogs(normalizedLogs);
+      setPage(nextPage);
+      setTotalPages(responseTotalPages);
+      setTotal(unwrapTotal(response, responseTotalPages * PAGE_SIZE));
     } catch (err) {
       setError(err?.response?.data?.error ?? err?.error ?? err?.message ?? 'Greska pri ucitavanju audit loga.');
     } finally {
@@ -184,7 +214,7 @@ export default function AuditLogPage() {
   }, []);
 
   useEffect(() => {
-    load();
+    load(1, EMPTY_FILTERS);
   }, [load]);
 
   useLayoutEffect(() => {
@@ -216,11 +246,17 @@ export default function AuditLogPage() {
   function applyFilters(event) {
     event.preventDefault();
     setAppliedFilters(filters);
+    load(1, filters);
   }
 
   function resetFilters() {
     setFilters(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
+    load(1, EMPTY_FILTERS);
+  }
+
+  function handlePageChange(nextPage) {
+    load(nextPage, appliedFilters);
   }
 
   return (
@@ -251,7 +287,7 @@ export default function AuditLogPage() {
             <span className={styles.label}>Korisnik</span>
             <input
               type="text"
-              placeholder="Ime, email ili ID..."
+              placeholder="Korisnik, objekat ili detalji..."
               value={filters.user}
               onChange={event => updateFilter('user', event.target.value)}
             />
@@ -300,6 +336,13 @@ export default function AuditLogPage() {
                   ))}
                 </tbody>
               </table>
+              <Pagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={total}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
             </div>
           )}
         </section>
